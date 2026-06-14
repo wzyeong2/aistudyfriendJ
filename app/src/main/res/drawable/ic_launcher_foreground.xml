@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 더하기 기호 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,38h6v10h10v6h-10v10h-6v-10h-10v-6h10z" />
+    <!-- 곱하기/빼기 느낌의 막대 (아래) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,68h18v6h-18z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M68,40l4,-4l4,4l-4,4z M62,46l4,-4l4,4l-4,4z M74,46l4,-4l4,4l-4,4z M68,52l4,-4l4,4l-4,4z" />
+</vector>
