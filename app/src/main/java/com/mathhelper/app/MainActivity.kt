@@ -593,14 +593,42 @@ private fun ProblemCard(p: ProblemResult) {
                     }
                 }
             }
-            if (p.steps.isNotEmpty()) {
+            if (!p.concept.isNullOrBlank()) {
                 Spacer(Modifier.height(10.dp))
-                Text("이렇게 풀어요", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = BluePrimary)
+                Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFFEAF1FB)) {
+                    Row(Modifier.padding(12.dp)) {
+                        Icon(Icons.Default.School, null, tint = BluePrimary)
+                        Spacer(Modifier.width(8.dp))
+                        Column {
+                            Text("📌 알아두기", fontWeight = FontWeight.Bold, color = BluePrimary, fontSize = 13.sp)
+                            Text(p.concept, fontSize = 14.sp)
+                        }
+                    }
+                }
+            }
+            if (p.steps.isNotEmpty()) {
+                var revealed by remember(p) { mutableStateOf(0) }
+                Spacer(Modifier.height(10.dp))
+                Text("이렇게 풀어요 (한 단계씩 힌트)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = BluePrimary)
                 Spacer(Modifier.height(4.dp))
-                p.steps.forEachIndexed { i, s ->
+                for (i in 0 until revealed) {
                     Row(Modifier.padding(vertical = 2.dp)) {
                         Text("${i + 1}. ", fontWeight = FontWeight.Bold)
-                        Text(s, fontSize = 14.sp)
+                        Text(p.steps[i], fontSize = 14.sp)
+                    }
+                }
+                if (revealed < p.steps.size) {
+                    Spacer(Modifier.height(4.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        OutlinedButton(onClick = { revealed++ }) {
+                            Icon(Icons.Default.Lightbulb, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(if (revealed == 0) "💡 힌트 보기" else "다음 힌트 (${revealed}/${p.steps.size})")
+                        }
+                        if (p.steps.size > 1) {
+                            Spacer(Modifier.width(8.dp))
+                            TextButton(onClick = { revealed = p.steps.size }) { Text("다 보기") }
+                        }
                     }
                 }
             }
@@ -758,13 +786,18 @@ private fun HistoryDialog(store: Store, onOpen: (Analysis) -> Unit, onClose: () 
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         ) {
                             Column(Modifier.padding(12.dp)) {
+                                val emoji = when (a.subjectLabel) {
+                                    "영어" -> "🔤"; "수학" -> "🔢"; else -> "📝"
+                                }
                                 Text(
-                                    fmtTime(a.timeMillis) + "  ·  " +
+                                    "$emoji  " + fmtTime(a.timeMillis) + "  ·  " +
                                         listOf(a.subjectLabel, a.gradeLabel).filter { it.isNotBlank() }.joinToString(" "),
                                     fontSize = 12.sp, color = Color.Gray,
                                 )
-                                val title = a.problems.firstOrNull()?.problem
-                                    ?: a.overall.take(20).ifBlank { "분석 결과" }
+                                val title = a.problems.firstOrNull()?.problem?.ifBlank { null }
+                                    ?: a.overall.ifBlank { null }
+                                    ?: a.rawFallback?.lineSequence()?.firstOrNull { it.isNotBlank() }?.take(24)
+                                    ?: "분석 결과"
                                 Text(title, fontWeight = FontWeight.Medium, maxLines = 1)
                             }
                         }

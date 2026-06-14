@@ -30,6 +30,7 @@ data class ProblemResult(
     val isCorrect: Boolean?,    // 맞았는지 (childAnswer 없으면 null)
     val why: String?,           // 틀린 이유 (아이 눈높이, 틀렸을 때만)
     val steps: List<String>,    // 쉬운 단계별 풀이
+    val concept: String? = null, // 관련 공식/개념 한 줄 (수학=공식, 영어=문법 포인트)
 )
 
 /** 유사 연습문제 */
@@ -66,6 +67,7 @@ data class Analysis(
                     put("isCorrect", p.isCorrect ?: JSONObject.NULL)
                     put("why", p.why ?: JSONObject.NULL)
                     put("steps", org.json.JSONArray(p.steps))
+                    put("concept", p.concept ?: JSONObject.NULL)
                 })
             }
         })
@@ -114,6 +116,7 @@ data class Analysis(
                             isCorrect = if (p.isNull("isCorrect")) null else p.optBoolean("isCorrect"),
                             why = p.optStringOrNull("why"),
                             steps = steps,
+                            concept = p.optStringOrNull("concept"),
                         )
                     )
                 }

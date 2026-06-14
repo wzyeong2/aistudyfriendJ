@@ -122,9 +122,10 @@ object StudyPrompt {
         appendLine("1. 사진에 아이가 직접 쓴 답/풀이가 보이면: 채점하고, 틀린 문제는 '왜 틀렸는지'를 ${grade.label} 아이가 이해할 수 있는 아주 쉬운 말로 설명해줘. (예: 받아올림을 깜빡했어, 자릿수를 잘못 맞췄어 등)")
         appendLine("2. 아이가 쓴 답이 안 보이면: 그냥 문제만 인식해서 쉬운 풀이를 알려줘. (isCorrect, childAnswer, why 는 null)")
         appendLine("3. 모든 설명은 ${grade.label} 아이가 혼자 읽고 이해할 수 있게, 짧고 쉬운 문장으로. 어려운 용어 금지.")
-        appendLine("4. 풀이(steps)는 한 단계씩 따라 할 수 있게 순서대로 나눠줘.")
-        appendLine("5. 사진 속 문제와 같은 유형의 '연습문제'를 2~3개 새로 만들어서 practice에 넣어줘. 너무 똑같지 않게, 숫자를 바꿔서.")
-        appendLine("6. 사진이 흐리거나 수학 문제가 아니면 overall 에 그 사실을 알려주고 problems는 빈 배열로.")
+        appendLine("4. 풀이(steps)는 한 단계씩 따라 할 수 있게 순서대로 나눠줘. (스스로 풀도록 힌트처럼)")
+        appendLine("5. concept에는 이 문제에서 꼭 알아야 할 '핵심 공식이나 개념'을 ${grade.label} 눈높이로 한 줄 적어줘. (예: '받아올림: 10이 넘으면 윗자리로 1을 올려요')")
+        appendLine("6. 사진 속 문제와 같은 유형의 '연습문제'를 2~3개 새로 만들어서 practice에 넣어줘. 너무 똑같지 않게, 숫자를 바꿔서.")
+        appendLine("7. 사진이 흐리거나 수학 문제가 아니면 overall 에 그 사실을 알려주고 problems는 빈 배열로.")
         appendLine()
         append(jsonSpec())
     }
@@ -137,8 +138,9 @@ object StudyPrompt {
         appendLine("1. 사진에 아이가 직접 쓴 답이 보이면: 채점하고, 틀린 문제는 '왜 틀렸는지'를 ${grade.label} 아이가 이해할 쉬운 한국어로 설명해줘. (예: 단수/복수 실수, 시제(과거/현재) 틀림, 스펠링 오류, 단어 뜻 혼동 등)")
         appendLine("2. 아이가 쓴 답이 안 보이면: 문제만 인식해서 쉬운 풀이를 알려줘. (isCorrect, childAnswer, why 는 null)")
         appendLine("3. steps에는 단어 뜻, 문법 포인트, 왜 그 답인지를 한 단계씩 쉬운 한국어로 적어줘.")
-        appendLine("4. 사진 속 문제와 같은 유형의 영어 '연습문제'를 2~3개 새로 만들어 practice에 넣어줘. q는 영어 문제, a는 정답, hint는 한국어 힌트.")
-        appendLine("5. 사진이 흐리거나 영어 문제가 아니면 overall 에 그 사실을 알려주고 problems는 빈 배열로.")
+        appendLine("4. concept에는 이 문제의 핵심 문법/단어 포인트를 ${grade.label} 눈높이로 한 줄 적어줘. (예: '복수형: 여러 개일 땐 끝에 s를 붙여요')")
+        appendLine("5. 사진 속 문제와 같은 유형의 영어 '연습문제'를 2~3개 새로 만들어 practice에 넣어줘. q는 영어 문제, a는 정답, hint는 한국어 힌트.")
+        appendLine("6. 사진이 흐리거나 영어 문제가 아니면 overall 에 그 사실을 알려주고 problems는 빈 배열로.")
         appendLine()
         append(jsonSpec())
     }
@@ -155,7 +157,8 @@ object StudyPrompt {
       "correct": "올바른 답",
       "isCorrect": true,
       "why": "틀렸으면 쉬운 말로 이유, 맞았으면 null",
-      "steps": ["1단계 설명", "2단계 설명", "..."]
+      "steps": ["1단계 설명", "2단계 설명", "..."],
+      "concept": "핵심 공식·개념 한 줄"
     }
   ],
   "practice": [
