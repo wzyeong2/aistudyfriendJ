@@ -90,7 +90,7 @@ fun VocabScreen(store: Store, onBack: () -> Unit) {
         when (mode) {
             0 -> WordListMode(words, learned, ::speak, ::toggle)
             1 -> FlashcardMode(words, learned, ::speak, ::toggle)
-            2 -> QuizMode(words, ::speak)
+            2 -> QuizMode(words, store, ::speak)
             else -> PhotoQuizMode(store, ::speak)
         }
     }
@@ -206,7 +206,7 @@ private fun FlashcardMode(
 }
 
 @Composable
-private fun QuizMode(words: List<Word>, speak: (String) -> Unit) {
+private fun QuizMode(words: List<Word>, store: Store, speak: (String) -> Unit) {
     val context = LocalContext.current
     val quiz = remember { words.shuffled().take(10) }
     var qIdx by remember { mutableStateOf(0) }
@@ -277,7 +277,7 @@ private fun QuizMode(words: List<Word>, speak: (String) -> Unit) {
                     onClick = {
                         if (picked == null) {
                             picked = opt
-                            if (isCorrect) { score++; celebrateVibrate(context) }
+                            if (isCorrect) { score++; celebrateVibrate(context); store.reward(1) }
                         }
                     },
                 ) {

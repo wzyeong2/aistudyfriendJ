@@ -144,6 +144,7 @@ private fun WriteDialog(
                                     if (r.correct) {
                                         celebrating = true
                                         celebrateVibrate(context)
+                                        store.reward(1)
                                         scope.launch { delay(1300); onResult(r) }
                                     } else {
                                         onResult(r)

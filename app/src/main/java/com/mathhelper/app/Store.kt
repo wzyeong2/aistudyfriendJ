@@ -56,6 +56,9 @@ class Store(context: Context) {
     val stars: Int get() = prefs.getInt("stars", 0)
     fun addStars(n: Int) = prefs.edit().putInt("stars", stars + n).apply()
 
+    /** 정답 보상: 별 적립 + 오늘 공부 기록(스트릭) 한 번에 */
+    fun reward(n: Int) { addStars(n); recordStudyToday() }
+
     val streak: Int get() = prefs.getInt("streak", 0)
     private val lastStudyDate: String get() = prefs.getString("last_study", "") ?: ""
 

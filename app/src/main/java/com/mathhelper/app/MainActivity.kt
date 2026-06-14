@@ -143,6 +143,7 @@ private fun MathApp() {
     var showWrong by remember { mutableStateOf(false) }
     var showVocab by remember { mutableStateOf(false) }
     var showDaily by remember { mutableStateOf(false) }
+    var showStickers by remember { mutableStateOf(false) }
     var grade by remember { mutableStateOf(store.grade) }
     var subject by remember { mutableStateOf(store.subject) }
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
@@ -200,10 +201,11 @@ private fun MathApp() {
     }
 
     // 시스템 뒤로가기: 하위 화면이면 홈으로, 아니면 앱 종료(기본)
-    BackHandler(enabled = showVocab || showDaily || result != null) {
+    BackHandler(enabled = showVocab || showDaily || showStickers || result != null) {
         when {
             showVocab -> showVocab = false
             showDaily -> showDaily = false
+            showStickers -> showStickers = false
             result != null -> { result = null; bitmap = null }
         }
     }
@@ -235,6 +237,7 @@ private fun MathApp() {
             when {
                 showVocab -> VocabScreen(store = store, onBack = { showVocab = false })
                 showDaily -> DailyMissionScreen(store = store, grade = grade, onBack = { showDaily = false })
+                showStickers -> StickerScreen(store = store, onBack = { showStickers = false })
                 r != null -> ResultContent(r, store = store, onNew = { result = null; bitmap = null })
                 else -> HomeContent(
                     bitmap = bitmap,
@@ -246,6 +249,7 @@ private fun MathApp() {
                     onPickSubject = { subject = it; store.subject = it },
                     onOpenVocab = { showVocab = true },
                     onOpenDaily = { showDaily = true },
+                    onOpenStickers = { showStickers = true },
                     onCamera = { launchCamera() },
                     onGallery = { pickImage.launch("image/*") },
                     onAnalyze = { analyze() },
@@ -308,6 +312,7 @@ private fun HomeContent(
     onPickSubject: (Subject) -> Unit,
     onOpenVocab: () -> Unit,
     onOpenDaily: () -> Unit,
+    onOpenStickers: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onAnalyze: () -> Unit,
@@ -344,6 +349,10 @@ private fun HomeContent(
         }
         Spacer(Modifier.height(10.dp))
 
+        // 마스코트 (별 모으면 성장)
+        MascotCard(store)
+        Spacer(Modifier.height(10.dp))
+
         // 오늘의 미션
         val missionDone = store.missionDone >= MISSION_GOAL
         Surface(
@@ -372,6 +381,16 @@ private fun HomeContent(
                 }
                 if (!missionDone) Icon(Icons.Default.ChevronRight, null, tint = Color.White)
             }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // 스티커북
+        OutlinedButton(
+            onClick = onOpenStickers,
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            shape = RoundedCornerShape(14.dp),
+        ) {
+            Text("🎁 스티커북  (${stickerCollected(store.stars)}/$stickerTotal)", fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.height(12.dp))
 
