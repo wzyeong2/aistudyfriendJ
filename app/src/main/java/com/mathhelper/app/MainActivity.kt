@@ -56,6 +56,9 @@ private val BluePrimary = Color(0xFF3D6EA5)
 private val GreenOk = Color(0xFF2E7D32)
 private val RedNo = Color(0xFFC62828)
 
+// 개발자 후원 링크 (비어 있으면 "마음만 받을게요" 팝업). 링크 받으면 여기에 넣으면 됨.
+private const val DONATE_URL = ""
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -139,6 +142,7 @@ private fun MathApp() {
     var showHistory by remember { mutableStateOf(false) }
     var showWrong by remember { mutableStateOf(false) }
     var showVocab by remember { mutableStateOf(false) }
+    var showDaily by remember { mutableStateOf(false) }
     var grade by remember { mutableStateOf(store.grade) }
     var subject by remember { mutableStateOf(store.subject) }
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
@@ -195,10 +199,11 @@ private fun MathApp() {
         }
     }
 
-    // 시스템 뒤로가기: 단어/결과 화면이면 홈으로, 아니면 앱 종료(기본)
-    BackHandler(enabled = showVocab || result != null) {
+    // 시스템 뒤로가기: 하위 화면이면 홈으로, 아니면 앱 종료(기본)
+    BackHandler(enabled = showVocab || showDaily || result != null) {
         when {
             showVocab -> showVocab = false
+            showDaily -> showDaily = false
             result != null -> { result = null; bitmap = null }
         }
     }
@@ -229,15 +234,18 @@ private fun MathApp() {
             val r = result
             when {
                 showVocab -> VocabScreen(store = store, onBack = { showVocab = false })
+                showDaily -> DailyMissionScreen(store = store, grade = grade, onBack = { showDaily = false })
                 r != null -> ResultContent(r, store = store, onNew = { result = null; bitmap = null })
                 else -> HomeContent(
                     bitmap = bitmap,
                     grade = grade,
                     subject = subject,
+                    store = store,
                     loading = loading,
                     onPickGrade = { grade = it; store.grade = it },
                     onPickSubject = { subject = it; store.subject = it },
                     onOpenVocab = { showVocab = true },
+                    onOpenDaily = { showDaily = true },
                     onCamera = { launchCamera() },
                     onGallery = { pickImage.launch("image/*") },
                     onAnalyze = { analyze() },
@@ -294,20 +302,23 @@ private fun HomeContent(
     bitmap: Bitmap?,
     grade: Grade,
     subject: Subject,
+    store: Store,
     loading: Boolean,
     onPickGrade: (Grade) -> Unit,
     onPickSubject: (Subject) -> Unit,
     onOpenVocab: () -> Unit,
+    onOpenDaily: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onAnalyze: () -> Unit,
     onClear: () -> Unit,
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // JANE 인사
+        // JANE 인사 + 별/스트릭
         Surface(
             shape = RoundedCornerShape(12.dp),
             color = BluePrimary.copy(alpha = 0.08f),
@@ -320,9 +331,46 @@ private fun HomeContent(
                 Text("👋", fontSize = 22.sp)
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    "안녕, JANE! 오늘은 어떤 문제를 풀어볼까?",
+                    "안녕, JANE!",
                     fontSize = 15.sp, fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f),
                 )
+                Text("⭐ ${store.stars}", fontWeight = FontWeight.Bold, color = BluePrimary)
+                if (store.streak > 0) {
+                    Spacer(Modifier.width(10.dp))
+                    Text("🔥 ${store.streak}", fontWeight = FontWeight.Bold, color = Color(0xFFE8590C))
+                }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+
+        // 오늘의 미션
+        val missionDone = store.missionDone >= MISSION_GOAL
+        Surface(
+            onClick = { if (!missionDone) onOpenDaily() },
+            shape = RoundedCornerShape(14.dp),
+            color = if (missionDone) Color(0xFFE9F6EC) else BluePrimary,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Row(
+                Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(if (missionDone) "✅" else "🎯", fontSize = 26.sp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (missionDone) "오늘의 미션 완료!" else "오늘의 미션",
+                        fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                        color = if (missionDone) Color(0xFF2E7D32) else Color.White,
+                    )
+                    Text(
+                        if (missionDone) "내일 또 만나요 👋" else "$MISSION_GOAL 문제 풀고 별 모으기 ⭐",
+                        fontSize = 13.sp,
+                        color = if (missionDone) Color.Gray else Color.White.copy(alpha = 0.9f),
+                    )
+                }
+                if (!missionDone) Icon(Icons.Default.ChevronRight, null, tint = Color.White)
             }
         }
         Spacer(Modifier.height(12.dp))
@@ -417,6 +465,30 @@ private fun HomeContent(
                 }
             }
         }
+
+        Spacer(Modifier.height(24.dp))
+        var showThanks by remember { mutableStateOf(false) }
+        TextButton(onClick = {
+            if (DONATE_URL.isBlank()) {
+                showThanks = true
+            } else {
+                try {
+                    context.startActivity(
+                        android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(DONATE_URL))
+                    )
+                } catch (e: Exception) { showThanks = true }
+            }
+        }) {
+            Text("☕ 개발자에게 커피 한 잔", color = Color.Gray, fontSize = 13.sp)
+        }
+        if (showThanks) {
+            AlertDialog(
+                onDismissRequest = { showThanks = false },
+                confirmButton = { TextButton(onClick = { showThanks = false }) { Text("고마워요 ㅎㅎ") } },
+                text = { Text("☕ 마음만 받을게요! JANE 열심히 공부하는 게 최고의 선물이에요 😊") },
+            )
+        }
+        Spacer(Modifier.height(8.dp))
     }
 }
 

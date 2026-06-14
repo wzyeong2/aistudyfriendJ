@@ -3,6 +3,7 @@ package com.mathhelper.app
 import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.LocalDate
 
 /** API 키·학년·분석 기록을 기기에 저장 */
 class Store(context: Context) {
@@ -50,6 +51,30 @@ class Store(context: Context) {
     }
 
     fun clearHistory() = prefs.edit().remove("history").apply()
+
+    // ----- 보상: 별 / 스트릭 / 오늘의 미션 -----
+    val stars: Int get() = prefs.getInt("stars", 0)
+    fun addStars(n: Int) = prefs.edit().putInt("stars", stars + n).apply()
+
+    val streak: Int get() = prefs.getInt("streak", 0)
+    private val lastStudyDate: String get() = prefs.getString("last_study", "") ?: ""
+
+    /** 오늘 공부 기록 → 연속 학습일 갱신 (하루 한 번만 증가) */
+    fun recordStudyToday() {
+        val today = LocalDate.now().toString()
+        if (lastStudyDate == today) return
+        val yesterday = LocalDate.now().minusDays(1).toString()
+        val newStreak = if (lastStudyDate == yesterday) streak + 1 else 1
+        prefs.edit().putInt("streak", newStreak).putString("last_study", today).apply()
+    }
+
+    /** 오늘의 미션 완료 문제 수 (날짜 바뀌면 0) */
+    var missionDone: Int
+        get() = if ((prefs.getString("mission_date", "") ?: "") == LocalDate.now().toString())
+            prefs.getInt("mission_done", 0) else 0
+        set(v) = prefs.edit()
+            .putString("mission_date", LocalDate.now().toString())
+            .putInt("mission_done", v).apply()
 
     // ----- 외운 영어 단어 -----
     fun learnedWords(): Set<String> =
