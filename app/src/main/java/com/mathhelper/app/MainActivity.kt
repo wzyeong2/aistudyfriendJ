@@ -557,7 +557,7 @@ private fun GradeSelector(grade: Grade, onPick: (Grade) -> Unit) {
         ) {
             Icon(Icons.Default.School, null, tint = BluePrimary)
             Spacer(Modifier.width(8.dp))
-            Text("우리 아이 학년", fontWeight = FontWeight.Medium)
+            Text("몇 학년이야?", fontWeight = FontWeight.Medium)
             Spacer(Modifier.weight(1f))
             Box {
                 AssistChip(
