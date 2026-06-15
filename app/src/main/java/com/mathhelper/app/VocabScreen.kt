@@ -452,7 +452,7 @@ private fun PhotoQuizPlay(
             Spacer(Modifier.height(16.dp))
             if (graded == null) {
                 WriteAndGradeButton(
-                    label = "✍️ 손글씨로 답쓰기",
+                    label = "✏️ 답 쓰기",
                     prompt = promptShown,
                     subtitle = instruction,
                     q = q, expected = expected, store = store,

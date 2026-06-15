@@ -2,6 +2,7 @@ package com.mathhelper.app
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -74,7 +76,18 @@ private fun WriteDialog(
     var grading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var celebrating by remember { mutableStateOf(false) }
+    var mode by remember { mutableStateOf("type") } // type=키보드(무료) | draw=손글씨(AI)
+    var typed by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
+    val numeric = expected.isNotEmpty() && expected.all { it.isDigit() }
+
+    fun norm(s: String) = s.trim().lowercase().replace(" ", "")
+    fun finish(r: HandwriteResult) {
+        if (r.correct) {
+            celebrating = true; celebrateVibrate(context); store.reward(1)
+            scope.launch { delay(1300); onResult(r) }
+        } else onResult(r)
+    }
 
     Dialog(
         onDismissRequest = { if (!celebrating) onClose() },
@@ -86,70 +99,91 @@ private fun WriteDialog(
                 return@Surface
             }
             Column(Modifier.fillMaxSize().padding(16.dp)) {
-                // 풀어야 할 문제(단어)를 위에 크게 고정
+                // 문제(단어)를 위에 크게 고정
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(prompt, fontWeight = FontWeight.Bold, fontSize = 26.sp)
-                        Text(
-                            if (subtitle.isNotBlank()) subtitle else "아래 칸에 답을 크게 써봐 ✍️",
-                            fontSize = 14.sp, color = Accent,
-                        )
+                        if (subtitle.isNotBlank()) Text(subtitle, fontSize = 14.sp, color = Accent)
                     }
                     IconButton(onClick = onClose) { Icon(Icons.Default.Close, "닫기") }
                 }
-                Spacer(Modifier.height(8.dp))
-                // 되돌리기 (마지막 획만 지우기)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(
-                        onClick = { strokes.removeLastOrNull() },
-                        enabled = strokes.isNotEmpty(),
-                    ) {
-                        Icon(Icons.Default.Undo, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp)); Text("되돌리기")
-                    }
-                }
-                HandwritingPad(
-                    strokes = strokes,
-                    onSize = { padSize = it },
-                    modifier = Modifier.fillMaxWidth().weight(1f),
-                )
-                error?.let {
-                    Spacer(Modifier.height(6.dp)); Text(it, color = Bad, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                // 입력 방식 선택
+                Row {
+                    FilterChip(
+                        selected = mode == "type", onClick = { mode = "type" },
+                        label = { Text("⌨️ 키보드") },
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    FilterChip(
+                        selected = mode == "draw", onClick = { mode = "draw" },
+                        label = { Text("✍️ 손글씨") },
+                    )
                 }
                 Spacer(Modifier.height(12.dp))
-                Row {
-                    OutlinedButton(
-                        onClick = { strokes.clear() },
-                        modifier = Modifier.weight(1f).height(56.dp),
-                    ) {
-                        Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp)); Text("전체 지우기")
+
+                if (mode == "type") {
+                    OutlinedTextField(
+                        value = typed, onValueChange = { typed = it },
+                        label = { Text("답을 입력해줘") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = if (numeric) KeyboardType.Number else KeyboardType.Text
+                        ),
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.weight(1f))
+                } else {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(
+                            onClick = { strokes.removeLastOrNull() },
+                            enabled = strokes.isNotEmpty(),
+                        ) {
+                            Icon(Icons.Default.Undo, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(4.dp)); Text("되돌리기")
+                        }
                     }
-                    Spacer(Modifier.width(12.dp))
+                    HandwritingPad(
+                        strokes = strokes,
+                        onSize = { padSize = it },
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                    )
+                    Text("손글씨 채점은 AI를 써요(크레딧 소모)", fontSize = 11.sp, color = Color.Gray)
+                }
+
+                error?.let { Spacer(Modifier.height(6.dp)); Text(it, color = Bad, fontSize = 13.sp) }
+                Spacer(Modifier.height(12.dp))
+                Row {
+                    if (mode == "draw") {
+                        OutlinedButton(
+                            onClick = { strokes.clear() },
+                            modifier = Modifier.weight(1f).height(56.dp),
+                        ) {
+                            Icon(Icons.Default.Refresh, null, Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp)); Text("전체 지우기")
+                        }
+                        Spacer(Modifier.width(12.dp))
+                    }
                     Button(
-                        enabled = !grading && strokes.isNotEmpty(),
+                        enabled = !grading &&
+                            (if (mode == "type") typed.isNotBlank() else strokes.isNotEmpty()),
                         onClick = {
-                            val provider = store.provider
-                            val key = store.keyFor(provider)
-                            if (key.isBlank()) { error = "⚙️ 설정에서 API 키를 넣어줘."; return@Button }
-                            grading = true; error = null
-                            val bmp = strokesToBitmap(strokes, padSize.width, padSize.height)
-                            scope.launch {
-                                val res = AiClient.generate(
-                                    provider, key, StudyPrompt.gradeHandwriting(q, expected), jpegBytes(bmp)
-                                )
-                                grading = false
-                                res.onSuccess {
-                                    val r = parseHandwrite(it)
-                                    if (r.correct) {
-                                        celebrating = true
-                                        celebrateVibrate(context)
-                                        store.reward(1)
-                                        scope.launch { delay(1300); onResult(r) }
-                                    } else {
-                                        onResult(r)
-                                    }
-                                }.onFailure { error = "채점 실패: ${it.message}" }
+                            if (mode == "type") {
+                                val ok = norm(typed) == norm(expected)
+                                finish(HandwriteResult(ok, typed.trim(), ""))
+                            } else {
+                                val provider = store.provider
+                                val key = store.keyFor(provider)
+                                if (key.isBlank()) { error = "⚙️ 설정에서 API 키를 넣어줘."; return@Button }
+                                grading = true; error = null
+                                val bmp = strokesToBitmap(strokes, padSize.width, padSize.height)
+                                scope.launch {
+                                    val res = AiClient.generate(
+                                        provider, key, StudyPrompt.gradeHandwriting(q, expected), jpegBytes(bmp)
+                                    )
+                                    grading = false
+                                    res.onSuccess { finish(parseHandwrite(it)) }
+                                        .onFailure { error = "채점 실패: ${it.message}" }
+                                }
                             }
                         },
                         modifier = Modifier.weight(1f).height(56.dp),
