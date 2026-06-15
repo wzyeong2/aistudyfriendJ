@@ -71,6 +71,14 @@ class Store(context: Context) {
         prefs.edit().putInt("streak", newStreak).putString("last_study", today).apply()
     }
 
+    // 마스코트 꾸미기
+    var mascotHat: String
+        get() = prefs.getString("mascot_hat", "") ?: ""
+        set(v) = prefs.edit().putString("mascot_hat", v).apply()
+    var mascotBg: Int
+        get() = prefs.getInt("mascot_bg", 0)
+        set(v) = prefs.edit().putInt("mascot_bg", v).apply()
+
     /** 오늘의 미션 완료 문제 수 (날짜 바뀌면 0) */
     var missionDone: Int
         get() = if ((prefs.getString("mission_date", "") ?: "") == LocalDate.now().toString())

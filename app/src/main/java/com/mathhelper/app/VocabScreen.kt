@@ -35,7 +35,7 @@ private val Good = Color(0xFF2E7D32)
 private val Bad = Color(0xFFC62828)
 
 @Composable
-fun VocabScreen(store: Store, onBack: () -> Unit) {
+fun VocabScreen(store: Store, grade: Grade, onBack: () -> Unit) {
     val context = LocalContext.current
     // 영어 발음용 TTS
     val tts = remember {
@@ -48,7 +48,7 @@ fun VocabScreen(store: Store, onBack: () -> Unit) {
     DisposableEffect(Unit) { onDispose { tts.stop(); tts.shutdown() } }
     fun speak(en: String) = tts.speak(en, TextToSpeech.QUEUE_FLUSH, null, en)
 
-    val words = remember { WordBank.GRADE2 }
+    val words = remember(grade) { WordBank.forGrade(grade) }
     val learned = remember { mutableStateListOf<String>().apply { addAll(store.learnedWords()) } }
     fun toggle(en: String, on: Boolean) {
         if (on) { if (!learned.contains(en)) learned.add(en) } else learned.remove(en)
@@ -66,7 +66,7 @@ fun VocabScreen(store: Store, onBack: () -> Unit) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.Default.ArrowBack, "뒤로", tint = Color.White)
                 }
-                Text("영어 단어", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text("영어 단어 (${grade.label})", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.weight(1f))
                 Text("외움 ${learned.size}/${words.size}", color = Color.White, fontSize = 13.sp)
                 Spacer(Modifier.width(8.dp))

@@ -144,6 +144,7 @@ private fun MathApp() {
     var showVocab by remember { mutableStateOf(false) }
     var showDaily by remember { mutableStateOf(false) }
     var showStickers by remember { mutableStateOf(false) }
+    var showDecor by remember { mutableStateOf(false) }
     var grade by remember { mutableStateOf(store.grade) }
     var subject by remember { mutableStateOf(store.subject) }
     var pendingUri by remember { mutableStateOf<Uri?>(null) }
@@ -201,11 +202,12 @@ private fun MathApp() {
     }
 
     // 시스템 뒤로가기: 하위 화면이면 홈으로, 아니면 앱 종료(기본)
-    BackHandler(enabled = showVocab || showDaily || showStickers || result != null) {
+    BackHandler(enabled = showVocab || showDaily || showStickers || showDecor || result != null) {
         when {
             showVocab -> showVocab = false
             showDaily -> showDaily = false
             showStickers -> showStickers = false
+            showDecor -> showDecor = false
             result != null -> { result = null; bitmap = null }
         }
     }
@@ -235,9 +237,10 @@ private fun MathApp() {
         Box(Modifier.padding(pad).fillMaxSize()) {
             val r = result
             when {
-                showVocab -> VocabScreen(store = store, onBack = { showVocab = false })
+                showVocab -> VocabScreen(store = store, grade = grade, onBack = { showVocab = false })
                 showDaily -> DailyMissionScreen(store = store, grade = grade, onBack = { showDaily = false })
                 showStickers -> StickerScreen(store = store, onBack = { showStickers = false })
+                showDecor -> DecorateScreen(store = store, onBack = { showDecor = false })
                 r != null -> ResultContent(r, store = store, onNew = { result = null; bitmap = null })
                 else -> HomeContent(
                     bitmap = bitmap,
@@ -250,6 +253,7 @@ private fun MathApp() {
                     onOpenVocab = { showVocab = true },
                     onOpenDaily = { showDaily = true },
                     onOpenStickers = { showStickers = true },
+                    onDecorate = { showDecor = true },
                     onCamera = { launchCamera() },
                     onGallery = { pickImage.launch("image/*") },
                     onAnalyze = { analyze() },
@@ -313,6 +317,7 @@ private fun HomeContent(
     onOpenVocab: () -> Unit,
     onOpenDaily: () -> Unit,
     onOpenStickers: () -> Unit,
+    onDecorate: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,
     onAnalyze: () -> Unit,
@@ -349,8 +354,8 @@ private fun HomeContent(
         }
         Spacer(Modifier.height(10.dp))
 
-        // 마스코트 (별 모으면 성장)
-        MascotCard(store)
+        // 마스코트 (별 모으면 성장, 탭하면 꾸미기)
+        MascotCard(store, onDecorate = onDecorate)
         Spacer(Modifier.height(10.dp))
 
         // 오늘의 미션

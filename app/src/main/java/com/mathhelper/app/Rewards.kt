@@ -1,16 +1,19 @@
 package com.mathhelper.app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -18,6 +21,42 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val Accent = Color(0xFF3D6EA5)
+
+// ===== 꾸미기 아이템 =====
+data class Hat(val emoji: String, val name: String, val need: Int)
+data class MascotBg(val color: Long, val name: String, val need: Int)
+
+internal val HATS = listOf(
+    Hat("", "없음", 0),
+    Hat("🎀", "리본", 5),
+    Hat("🧢", "야구모자", 10),
+    Hat("🎩", "마술모자", 20),
+    Hat("🎓", "학사모", 35),
+    Hat("👑", "왕관", 55),
+    Hat("🦄", "유니콘뿔", 80),
+)
+internal val BGS = listOf(
+    MascotBg(0xFFFFF7E8, "기본", 0),
+    MascotBg(0xFFDCEBFF, "하늘", 6),
+    MascotBg(0xFFFFE3C7, "노을", 18),
+    MascotBg(0xFFDDF3DE, "숲", 30),
+    MascotBg(0xFFE9E0FF, "우주", 50),
+    MascotBg(0xFFFFE0EC, "솜사탕", 70),
+)
+
+/** 마스코트 + 모자(머리 위) 표시 */
+@Composable
+internal fun MascotView(emoji: String, hat: String, size: Int) {
+    Box(contentAlignment = Alignment.Center) {
+        Text(emoji, fontSize = size.sp)
+        if (hat.isNotBlank()) {
+            Text(
+                hat, fontSize = (size * 0.5).sp,
+                modifier = Modifier.align(Alignment.TopCenter).offset(y = (-size * 0.32).dp),
+            )
+        }
+    }
+}
 
 // ===== 마스코트 (별 모으면 성장) =====
 
@@ -35,17 +74,19 @@ internal fun mascotFor(stars: Int): MascotStage = MASCOT.last { stars >= it.min 
 internal fun nextMascot(stars: Int): MascotStage? = MASCOT.firstOrNull { it.min > stars }
 
 @Composable
-internal fun MascotCard(store: Store) {
+internal fun MascotCard(store: Store, onDecorate: () -> Unit) {
     val stars = store.stars
     val m = mascotFor(stars)
     val next = nextMascot(stars)
+    val bg = BGS.getOrElse(store.mascotBg) { BGS[0] }
     Surface(
+        onClick = onDecorate,
         shape = RoundedCornerShape(14.dp),
-        color = Color(0xFFFFF7E8),
+        color = Color(bg.color),
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(m.emoji, fontSize = 46.sp)
+            MascotView(m.emoji, store.mascotHat, size = 44)
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
                 Text(m.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
@@ -56,6 +97,10 @@ internal fun MascotCard(store: Store) {
                 } else {
                     Text("최고 단계 달성! 🎉", fontSize = 12.sp, color = Accent, fontWeight = FontWeight.Bold)
                 }
+            }
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Icon(Icons.Default.Brush, "꾸미기", tint = Accent)
+                Text("꾸미기", fontSize = 11.sp, color = Accent)
             }
         }
     }
@@ -126,5 +171,116 @@ fun StickerScreen(store: Store, onBack: () -> Unit) {
             }
             Spacer(Modifier.height(20.dp))
         }
+    }
+}
+
+// ===== 마스코트 꾸미기 =====
+
+@Composable
+fun DecorateScreen(store: Store, onBack: () -> Unit) {
+    val stars = store.stars
+    val mascot = mascotFor(stars).emoji
+    var hat by remember { mutableStateOf(store.mascotHat) }
+    var bgIdx by remember { mutableStateOf(store.mascotBg) }
+    val bg = BGS.getOrElse(bgIdx) { BGS[0] }
+
+    Column(Modifier.fillMaxSize().background(Color(0xFFFAFBFD))) {
+        Surface(color = Accent) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "뒤로", tint = Color.White) }
+                Text("마스코트 꾸미기", color = Color.White, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.weight(1f))
+                Text("⭐ $stars", color = Color.White, fontSize = 14.sp)
+                Spacer(Modifier.width(8.dp))
+            }
+        }
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+            // 미리보기
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = Color(bg.color),
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) { MascotView(mascot, hat, size = 72) }
+            }
+            Spacer(Modifier.height(18.dp))
+
+            Text("🎩 모자", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(Modifier.height(8.dp))
+            HATS.chunked(4).forEach { rowItems ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    rowItems.forEach { h ->
+                        val unlocked = stars >= h.need
+                        val selected = hat == h.emoji
+                        DecorCell(
+                            label = if (h.emoji.isBlank()) "❌" else h.emoji,
+                            name = h.name, unlocked = unlocked, selected = selected, need = h.need,
+                            modifier = Modifier.weight(1f),
+                        ) { if (unlocked) { hat = h.emoji; store.mascotHat = h.emoji } }
+                    }
+                    repeat(4 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+
+            Spacer(Modifier.height(18.dp))
+            Text("🎨 배경", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Spacer(Modifier.height(8.dp))
+            BGS.chunked(4).forEachIndexed { rowI, rowItems ->
+                Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    rowItems.forEachIndexed { colI, b ->
+                        val i = rowI * 4 + colI
+                        val unlocked = stars >= b.need
+                        val selected = bgIdx == i
+                        DecorCell(
+                            label = "🎨", name = b.name, unlocked = unlocked, selected = selected,
+                            need = b.need, swatch = Color(b.color), modifier = Modifier.weight(1f),
+                        ) { if (unlocked) { bgIdx = i; store.mascotBg = i } }
+                    }
+                    repeat(4 - rowItems.size) { Spacer(Modifier.weight(1f)) }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            Text("별을 모으면 더 많은 꾸미기가 열려요! ⭐", color = Color.Gray, fontSize = 13.sp)
+            Spacer(Modifier.height(16.dp))
+        }
+    }
+}
+
+@Composable
+private fun DecorCell(
+    label: String,
+    name: String,
+    unlocked: Boolean,
+    selected: Boolean,
+    need: Int,
+    modifier: Modifier = Modifier,
+    swatch: Color? = null,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = modifier.padding(4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Surface(
+            onClick = onClick,
+            shape = RoundedCornerShape(12.dp),
+            color = if (swatch != null && unlocked) swatch else if (unlocked) Color.White else Color(0xFFEFEFEF),
+            border = if (selected) androidx.compose.foundation.BorderStroke(2.5.dp, Accent) else null,
+            modifier = Modifier.size(56.dp),
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                if (unlocked) { if (swatch == null) Text(label, fontSize = 26.sp) }
+                else Text("🔒", fontSize = 18.sp)
+            }
+        }
+        Text(
+            if (unlocked) name else "⭐$need",
+            fontSize = 11.sp,
+            color = if (unlocked) Color.DarkGray else Color.Gray,
+            maxLines = 1,
+        )
     }
 }

@@ -1,6 +1,8 @@
 package com.mathhelper.app
 
 import android.content.Context
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.VibrationEffect
 import android.os.Vibrator
 import androidx.compose.animation.core.Animatable
@@ -54,15 +56,29 @@ internal fun CelebrationContent(message: String) {
     }
 }
 
-/** 짧게 진동 (정답 피드백) */
+/** 정답 피드백: 진동 + 효과음 */
 @Suppress("DEPRECATION")
 internal fun celebrateVibrate(context: Context) {
     try {
-        val vib = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return
-        if (vib.hasVibrator()) {
+        val vib = context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        if (vib?.hasVibrator() == true) {
             vib.vibrate(VibrationEffect.createOneShot(140, VibrationEffect.DEFAULT_AMPLITUDE))
         }
     } catch (e: Exception) {
         // 진동 실패는 무시
+    }
+    playSuccessSound()
+}
+
+/** 정답 효과음 (오디오 파일 없이 톤 생성) */
+internal fun playSuccessSound() {
+    try {
+        val tg = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
+        tg.startTone(ToneGenerator.TONE_PROP_BEEP2, 250) // 띠링~ 하는 확인음
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            try { tg.release() } catch (e: Exception) {}
+        }, 350)
+    } catch (e: Exception) {
+        // 사운드 실패는 무시
     }
 }
